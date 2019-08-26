@@ -8,18 +8,18 @@ import (
 )
 
 func _PKCS5Padding(ciphertext []byte, blockSize int) []byte {
-    padding := blockSize - len(ciphertext) % blockSize
-    padtext := bytes.Repeat([]byte{byte(padding)}, padding)
-    return append(ciphertext, padtext...)
+	padding := blockSize - len(ciphertext) % blockSize
+	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
+	return append(ciphertext, padtext...)
 }
 
 func _PKCS5UnPadding(origData []byte) ([]byte, error) {
-    length := len(origData)
-    unpadding := int(origData[length-1])
+	length := len(origData)
+	unpadding := int(origData[length-1])
 	if unpadding < 0 || unpadding >= length {
 		return nil, fmt.Errorf("Invalid unpadding data: %d", unpadding)
 	}
-    return origData[:(length - unpadding)], nil
+	return origData[:(length - unpadding)], nil
 }
 
 func adjustKey(key []byte) ([]byte, error) {

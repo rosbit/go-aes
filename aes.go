@@ -65,7 +65,7 @@ func AesEncrypt(plainText []byte, key []byte) ([]byte, error) {
 	return crypted, nil
 }
 
-func AesDecrypt(cryptedText []byte, key []byte) ([]byte, error) {
+func AesDecrypt(cryptedText []byte, key []byte) (b []byte, e error) {
 	if cryptedText == nil {
 		return nil, nil
 	}
@@ -74,6 +74,16 @@ func AesDecrypt(cryptedText []byte, key []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			var ok bool
+			if e, ok = r.(error); ok {
+				return
+			}
+			e = fmt.Errorf("panic %v", r)
+		}
+	}()
 	aesBlk, _ := aes.NewCipher(realKey)
 	blockSize := aesBlk.BlockSize()
 	// fmt.Printf("blockSize: %d\n", blockSize)

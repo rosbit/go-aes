@@ -46,8 +46,17 @@ func adjustKey(key []byte) ([]byte, error) {
 	}
 }
 
-func AesEncrypt(plainText []byte, key []byte) ([]byte, error) {
-	if plainText == nil {
+func makeIv(key []byte, blockSize int, iv ...[]byte) (realIv []byte) {
+	if len(iv) > 0 && len(iv[0]) > 0 {
+		realIv = iv[0]
+	} else {
+		realIv = key[:blockSize]
+	}
+	return
+}
+
+func AesEncrypt(plainText []byte, key []byte, iv ...[]byte) ([]byte, error) {
+	if len(plainText) == 0 {
 		return nil, nil
 	}
 
@@ -57,16 +66,16 @@ func AesEncrypt(plainText []byte, key []byte) ([]byte, error) {
 	}
 	aesBlk, _ := aes.NewCipher(realKey)
 	blockSize := aesBlk.BlockSize()
-	iv := key[:blockSize]
-	blockMode := cipher.NewCBCEncrypter(aesBlk, iv)
+	realIv := makeIv(key, blockSize, iv...)
+	blockMode := cipher.NewCBCEncrypter(aesBlk, realIv)
 	paddedPlainText := _PKCS5Padding(plainText, blockSize)
 	crypted := make([]byte, len(paddedPlainText))
 	blockMode.CryptBlocks(crypted, paddedPlainText)
 	return crypted, nil
 }
 
-func AesDecrypt(cryptedText []byte, key []byte) (b []byte, e error) {
-	if cryptedText == nil {
+func AesDecrypt(cryptedText []byte, key []byte, iv ...[]byte) (b []byte, e error) {
+	if len(cryptedText) == 0 {
 		return nil, nil
 	}
 
@@ -87,8 +96,8 @@ func AesDecrypt(cryptedText []byte, key []byte) (b []byte, e error) {
 	aesBlk, _ := aes.NewCipher(realKey)
 	blockSize := aesBlk.BlockSize()
 	// fmt.Printf("blockSize: %d\n", blockSize)
-	iv := key[:blockSize]
-	blockMode := cipher.NewCBCDecrypter(aesBlk, iv)
+	realIv := makeIv(key, blockSize, iv...)
+	blockMode := cipher.NewCBCDecrypter(aesBlk, realIv)
 	plainText := make([]byte, len(cryptedText))
 	blockMode.CryptBlocks(plainText, cryptedText)
 	return _PKCS5UnPadding(plainText)

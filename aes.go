@@ -47,11 +47,22 @@ func adjustKey(key []byte) ([]byte, error) {
 }
 
 func makeIv(key []byte, blockSize int, iv ...[]byte) (realIv []byte) {
-	if len(iv) > 0 && len(iv[0]) > 0 {
-		realIv = iv[0]
-	} else {
+	if len(iv) == 0 {
 		realIv = key[:blockSize]
+		return
 	}
+
+	if len(iv[0]) >= blockSize {
+		realIv = iv[0][:blockSize]
+		return
+	}
+
+	realIv = make([]byte, blockSize)
+	if len(iv[0]) == 0 {
+		return
+	}
+
+	copy(realIv, iv[0])
 	return
 }
 

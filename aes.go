@@ -66,10 +66,12 @@ func makeIv(key []byte, blockSize int, iv ...[]byte) (realIv []byte) {
 	return
 }
 
-func AesEncrypt(plainText []byte, key []byte, iv ...[]byte) ([]byte, error) {
+func AesEncrypt(plainText []byte, key []byte, options ...Option) ([]byte, error) {
 	if len(plainText) == 0 {
 		return nil, nil
 	}
+
+	opt := getOptions(options...)
 
 	realKey, err := adjustKey(key)
 	if err != nil {
@@ -77,18 +79,27 @@ func AesEncrypt(plainText []byte, key []byte, iv ...[]byte) ([]byte, error) {
 	}
 	aesBlk, _ := aes.NewCipher(realKey)
 	blockSize := aesBlk.BlockSize()
-	realIv := makeIv(key, blockSize, iv...)
+	realIv := makeIv(key, blockSize, opt.iv)
 	blockMode := cipher.NewCBCEncrypter(aesBlk, realIv)
-	paddedPlainText := _PKCS5Padding(plainText, blockSize)
+	paddedPlainText := func()[]byte{
+		if opt.noPadding {
+			if len(plainText) % blockSize == 0 {
+				return plainText
+			}
+		}
+		return _PKCS5Padding(plainText, blockSize)
+	}()
 	crypted := make([]byte, len(paddedPlainText))
 	blockMode.CryptBlocks(crypted, paddedPlainText)
 	return crypted, nil
 }
 
-func AesDecrypt(cryptedText []byte, key []byte, iv ...[]byte) (b []byte, e error) {
+func AesDecrypt(cryptedText []byte, key []byte, options ...Option) (b []byte, e error) {
 	if len(cryptedText) == 0 {
 		return nil, nil
 	}
+
+	opt := getOptions(options...)
 
 	realKey, err := adjustKey(key)
 	if err != nil {
@@ -107,9 +118,12 @@ func AesDecrypt(cryptedText []byte, key []byte, iv ...[]byte) (b []byte, e error
 	aesBlk, _ := aes.NewCipher(realKey)
 	blockSize := aesBlk.BlockSize()
 	// fmt.Printf("blockSize: %d\n", blockSize)
-	realIv := makeIv(key, blockSize, iv...)
+	realIv := makeIv(key, blockSize, opt.iv)
 	blockMode := cipher.NewCBCDecrypter(aesBlk, realIv)
 	plainText := make([]byte, len(cryptedText))
 	blockMode.CryptBlocks(plainText, cryptedText)
+	if opt.noPadding {
+		return plainText, nil
+	}
 	return _PKCS5UnPadding(plainText)
 }
